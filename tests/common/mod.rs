@@ -1,4 +1,4 @@
-use local_search::{CostFunction, MetaError, Neighborhood};
+use localsearch_rs::{CostFunction, MetaError, Neighborhood};
 use rand::seq::SliceRandom;
 use rand::Rng;
 

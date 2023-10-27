@@ -1,5 +1,5 @@
 [package]
-name = "local_search"
+name = "localsearch_rs"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,4 +12,4 @@ rayon = "1.6.1"
 thiserror = "1.0.38"
 
 [lib]
-name = "local_search"
+name = "localsearch_rs"

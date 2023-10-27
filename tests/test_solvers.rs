@@ -2,7 +2,7 @@ mod common;
 
 use approx::assert_abs_diff_eq;
 use common::EightQueens;
-use local_search::{Executor, State, TabuSearch, VariableNeighborhood};
+use localsearch_rs::{Executor, State, TabuSearch, VariableNeighborhood};
 
 #[test]
 fn test_variable_neighborhood() {
