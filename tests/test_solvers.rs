@@ -1,6 +1,5 @@
 mod common;
 
-use approx::assert_abs_diff_eq;
 use common::EightQueens;
 use localsearch_rs::{Executor, State, TabuSearch, VariableNeighborhood};
 
@@ -15,7 +14,8 @@ fn test_variable_neighborhood() {
         .unwrap()
         .run()
         .unwrap();
-    assert_abs_diff_eq!(0.0, res.state().get_best_cost(), epsilon = 0.01);
+    let cost = res.state().get_best_cost();
+    assert!(cost.abs() < f64::EPSILON);
 }
 
 #[test]
@@ -29,5 +29,6 @@ fn test_tabu_search() {
         .unwrap()
         .run()
         .unwrap();
-    assert_abs_diff_eq!(0.0, res.state().get_best_cost(), epsilon = 0.01);
+    let cost = res.state().get_best_cost();
+    assert!(cost.abs() < f64::EPSILON);
 }

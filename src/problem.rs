@@ -1,4 +1,4 @@
-use crate::errors::MetaError;
+use crate::errors::LocalSearchError;
 use rand::Rng;
 
 #[derive(Clone)]
@@ -32,7 +32,7 @@ pub trait CostFunction {
     /// # Errors
     ///
     /// Will return `Err` if
-    fn cost(&self, param: &Self::Param) -> Result<f64, MetaError>;
+    fn cost(&self, param: &Self::Param) -> Result<f64, LocalSearchError>;
 }
 
 pub trait Neighborhood {
@@ -47,7 +47,7 @@ pub trait Neighborhood {
         rng: &mut R,
         param: &Self::Param,
         num_neighbors: Option<u32>,
-    ) -> Result<Vec<Self::Neighbor>, MetaError>;
+    ) -> Result<Vec<Self::Neighbor>, LocalSearchError>;
 
     /// # Errors
     ///
@@ -56,5 +56,5 @@ pub trait Neighborhood {
         &self,
         param: &Self::Param,
         neighbor: Self::Neighbor,
-    ) -> Result<Self::Param, MetaError>;
+    ) -> Result<Self::Param, LocalSearchError>;
 }

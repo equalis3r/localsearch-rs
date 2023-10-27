@@ -1,4 +1,4 @@
-use crate::errors::MetaError;
+use crate::errors::LocalSearchError;
 use crate::problem::Problem;
 use crate::result::MetaSolution;
 use crate::solver::Solver;
@@ -32,9 +32,9 @@ where
     /// # Errors
     ///
     /// Will return `Err` if
-    pub fn configure<F: FnOnce(I) -> I>(mut self, init: F) -> Result<Self, MetaError> {
+    pub fn configure<F: FnOnce(I) -> I>(mut self, init: F) -> Result<Self, LocalSearchError> {
         match self.state.take() {
-            None => Err(MetaError::NotInitialized),
+            None => Err(LocalSearchError::NotInitialized),
             Some(state) => {
                 self.state = Some(init(state));
                 Ok(self)
@@ -48,7 +48,7 @@ where
     /// # Errors
     ///
     /// Will return `Err` if
-    pub fn run(mut self) -> Result<MetaSolution<O, S, I>, MetaError> {
+    pub fn run(mut self) -> Result<MetaSolution<O, S, I>, LocalSearchError> {
         let total_time = if self.timer {
             Some(std::time::Instant::now())
         } else {
@@ -56,7 +56,7 @@ where
         };
 
         let Some(state) = self.state.take() else {
-            return Err(MetaError::NotInitialized);
+            return Err(LocalSearchError::NotInitialized);
         };
         let interrupt = Arc::new(AtomicBool::new(false));
 

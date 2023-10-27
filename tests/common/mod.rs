@@ -1,4 +1,4 @@
-use localsearch_rs::{CostFunction, MetaError, Neighborhood};
+use localsearch_rs::{CostFunction, LocalSearchError, Neighborhood};
 use rand::seq::SliceRandom;
 use rand::Rng;
 
@@ -9,7 +9,7 @@ type ChessBoard = [[bool; BOARD_SIZE]; BOARD_SIZE];
 pub struct EightQueens {}
 
 impl EightQueens {
-    pub fn init_solution<R: Rng>(rng: &mut R) -> Result<ChessBoard, MetaError> {
+    pub fn init_solution<R: Rng>(rng: &mut R) -> Result<ChessBoard, LocalSearchError> {
         let mut board = [[false; BOARD_SIZE]; BOARD_SIZE];
         let mut queen_cols: Vec<usize> = (0..BOARD_SIZE).collect();
         queen_cols.shuffle(rng);
@@ -29,7 +29,7 @@ impl Neighborhood for EightQueens {
         rng: &mut R,
         _param: &ChessBoard,
         num_neighbors: Option<u32>,
-    ) -> Result<Vec<Self::Neighbor>, MetaError> {
+    ) -> Result<Vec<Self::Neighbor>, LocalSearchError> {
         let neighbors = match num_neighbors {
             Some(val) => (0..val)
                 .into_iter()
@@ -46,7 +46,7 @@ impl Neighborhood for EightQueens {
         &self,
         param: &Self::Param,
         neighbor: Self::Neighbor,
-    ) -> Result<Self::Param, MetaError> {
+    ) -> Result<Self::Param, LocalSearchError> {
         let mut new_state = param.clone();
         let (queen_on_row, queen_new_col) = neighbor;
         new_state[queen_on_row] = [false; BOARD_SIZE];
@@ -58,7 +58,7 @@ impl Neighborhood for EightQueens {
 impl CostFunction for EightQueens {
     type Param = ChessBoard;
 
-    fn cost(&self, param: &Self::Param) -> Result<f64, MetaError> {
+    fn cost(&self, param: &Self::Param) -> Result<f64, LocalSearchError> {
         let mut num_attacking = 0;
         for i in 0..BOARD_SIZE {
             for j in 0..BOARD_SIZE {

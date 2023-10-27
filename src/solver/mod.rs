@@ -4,7 +4,7 @@ pub mod variable_neighborhood;
 pub use tabu_search::TabuSearch;
 pub use variable_neighborhood::VariableNeighborhood;
 
-use crate::errors::MetaError;
+use crate::errors::LocalSearchError;
 use crate::problem::Problem;
 use crate::state::State;
 use crate::termination::{Reason, Status};
@@ -15,14 +15,14 @@ pub trait Solver<O, I: State> {
     /// # Errors
     ///
     /// Will return `Err` if
-    fn init(&mut self, _problem: &mut Problem<O>, state: I) -> Result<I, MetaError> {
+    fn init(&mut self, _problem: &mut Problem<O>, state: I) -> Result<I, LocalSearchError> {
         Ok(state)
     }
 
     /// # Errors
     ///
     /// Will return `Err` if
-    fn next_iter(&mut self, problem: &mut Problem<O>, state: I) -> Result<I, MetaError>;
+    fn next_iter(&mut self, problem: &mut Problem<O>, state: I) -> Result<I, LocalSearchError>;
 
     fn terminate_internal(&mut self, state: &I) -> Status {
         let solver_status = self.terminate();

@@ -1,4 +1,4 @@
-use crate::errors::MetaError;
+use crate::errors::LocalSearchError;
 use crate::problem::{CostFunction, Neighborhood, Problem};
 use crate::solver::Solver;
 use crate::termination::{Reason, Status};
@@ -79,7 +79,7 @@ where
         &mut self,
         problem: &mut Problem<O>,
         mut state: Iteration<P>,
-    ) -> Result<Iteration<P>, MetaError> {
+    ) -> Result<Iteration<P>, LocalSearchError> {
         let param = state.take_param().unwrap();
 
         let cost = state.get_cost();
@@ -96,7 +96,7 @@ where
         &mut self,
         problem: &mut Problem<O>,
         mut state: Iteration<P>,
-    ) -> Result<Iteration<P>, MetaError> {
+    ) -> Result<Iteration<P>, LocalSearchError> {
         let prev_param = state.take_param().unwrap();
         let prev_cost = state.get_cost();
 
@@ -105,7 +105,7 @@ where
             .unwrap();
         let res = neighbors.into_par_iter().map(|neighbor| {
             problem.make_move(&prev_param, neighbor).map_or_else(
-                |_| Err(MetaError::FailGenCandidateState),
+                |_| Err(LocalSearchError::FailGenCandidateState),
                 |param| {
                     let new_cost = problem.cost(&param).unwrap();
                     Ok((param, new_cost))

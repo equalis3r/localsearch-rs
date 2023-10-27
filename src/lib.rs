@@ -6,7 +6,7 @@ pub mod solver;
 pub mod state;
 pub mod termination;
 
-pub use errors::MetaError;
+pub use errors::LocalSearchError;
 pub use executor::Executor;
 pub use problem::{CostFunction, Neighborhood, Problem};
 pub use result::MetaSolution;
