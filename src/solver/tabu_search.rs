@@ -11,11 +11,11 @@ use std::collections::VecDeque;
 pub struct TabuSearch<R, P> {
     num_neighbors: Option<u32>,
     tabu_list: VecDeque<P>,
+    init_temp: f64,
     stall_iter_accepted: u32,
     stall_iter_accepted_limit: u32,
     stall_iter_best: u32,
     stall_iter_best_limit: u32,
-    init_temp: f64,
     rng: R,
 }
 
@@ -24,11 +24,11 @@ impl<R: Rng, P> TabuSearch<R, P> {
         Self {
             num_neighbors,
             tabu_list: VecDeque::with_capacity(capacity),
+            init_temp: 100.0,
             stall_iter_accepted: 0,
             stall_iter_accepted_limit: u32::MAX,
             stall_iter_best: 0,
             stall_iter_best_limit: u32::MAX,
-            init_temp: 100.0f64,
             rng,
         }
     }

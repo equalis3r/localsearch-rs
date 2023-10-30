@@ -1,8 +1,8 @@
 use crate::problem::Problem;
 use crate::solver::Solver;
 use crate::state::State;
-use core::fmt;
 use std::cmp::Ordering;
+use std::fmt;
 
 #[derive(Clone)]
 pub struct MetaSolution<O, S, I> {

@@ -25,7 +25,6 @@ impl<O> std::ops::DerefMut for Problem<O> {
 }
 
 pub trait CostFunction {
-    /// Type of the parameter vector
     type Param;
 
     /// Compute cost function

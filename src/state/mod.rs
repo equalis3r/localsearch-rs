@@ -1,6 +1,6 @@
 pub mod iteration;
 use crate::termination::{Reason, Status};
-use core::time;
+use std::time;
 
 pub use iteration::Iteration;
 

@@ -1,4 +1,4 @@
-use core::fmt;
+use std::fmt;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub enum Status {
@@ -17,8 +17,8 @@ impl Status {
 impl fmt::Display for Status {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Terminated(reason) => f.write_str(reason.text()),
-            Self::NotTerminated => f.write_str("Running"),
+            Self::Terminated(reason) => write!(f, "{reason}"),
+            Self::NotTerminated => write!(f, "Running"),
         }
     }
 }
@@ -34,10 +34,9 @@ pub enum Reason {
     SolverExit(String),
 }
 
-impl Reason {
-    #[must_use]
-    pub fn text(&self) -> &str {
-        match self {
+impl fmt::Display for Reason {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let reason = match self {
             Self::MaxItersReached => "Maximum number of iterations reached",
             Self::MaxTimeReached => "Maximum time reached",
             Self::MaxStallBestReached => "Maximum stall best reached",
@@ -45,13 +44,8 @@ impl Reason {
             Self::KeyboardInterrupt => "Keyboard interrupt",
             Self::SolverConverged => "Solver converged",
             Self::SolverExit(reason) => reason.as_ref(),
-        }
-    }
-}
-
-impl fmt::Display for Reason {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.text())
+        };
+        write!(f, "{reason}")
     }
 }
 

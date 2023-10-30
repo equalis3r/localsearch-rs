@@ -1,7 +1,7 @@
 use crate::state::State;
 use crate::termination::{Reason, Status};
-use core::mem;
-use core::time;
+use std::mem;
+use std::time;
 
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct Iteration<P> {

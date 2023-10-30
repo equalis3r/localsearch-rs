@@ -1,4 +1,3 @@
-use std::error;
 use std::fmt;
 
 #[derive(Debug)]
@@ -7,14 +6,6 @@ pub enum LocalSearchError {
     FailGenRandomState,
     FailGenCandidateState,
     Bug,
-}
-
-impl error::Error for LocalSearchError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        match *self {
-            _ => None,
-        }
-    }
 }
 
 impl fmt::Display for LocalSearchError {
