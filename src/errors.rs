@@ -11,16 +11,16 @@ pub enum LocalSearchError {
 impl fmt::Display for LocalSearchError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            LocalSearchError::NotInitialized => {
+            Self::NotInitialized => {
                 write!(f, "Fail to initialize state parameters")
             }
-            LocalSearchError::FailGenRandomState => {
+            Self::FailGenRandomState => {
                 write!(f, "Fail to generate a random state")
             }
-            LocalSearchError::FailGenCandidateState => {
+            Self::FailGenCandidateState => {
                 write!(f, "Fail to generate a candidate state")
             }
-            LocalSearchError::Bug => {
+            Self::Bug => {
                 write!(f, "Bug")
             }
         }

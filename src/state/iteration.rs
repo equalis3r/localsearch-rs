@@ -4,7 +4,7 @@ use std::mem;
 use std::time;
 
 #[derive(Clone, Default, Debug, PartialEq)]
-pub struct Iteration<P> {
+pub struct IterState<P> {
     pub param: Option<P>,
     pub prev_param: Option<P>,
     pub best_param: Option<P>,
@@ -15,17 +15,14 @@ pub struct Iteration<P> {
     pub prev_best_cost: f64,
     pub target_cost: f64,
     pub iter: u32,
-    pub last_best_iter: u32,
+    pub prev_best_iter: u32,
     pub max_iters: u32,
     pub time: Option<std::time::Duration>,
     pub max_time: Option<std::time::Duration>,
     pub termination_status: Status,
 }
 
-impl<P> Iteration<P>
-where
-    Self: State,
-{
+impl<P> IterState<P> {
     #[must_use]
     pub fn param(mut self, param: P) -> Self {
         std::mem::swap(&mut self.prev_param, &mut self.param);
@@ -91,10 +88,7 @@ where
     }
 }
 
-impl<P> State for Iteration<P>
-where
-    P: Clone,
-{
+impl<P: Clone> State for IterState<P> {
     type Param = P;
 
     fn new() -> Self {
@@ -109,7 +103,7 @@ where
             prev_best_cost: f64::INFINITY,
             target_cost: f64::NEG_INFINITY,
             iter: 0,
-            last_best_iter: 0,
+            prev_best_iter: 0,
             max_iters: u32::MAX,
             time: Some(time::Duration::new(0, 0)),
             max_time: Some(time::Duration::MAX),
@@ -118,10 +112,11 @@ where
     }
 
     fn update(&mut self) {
-        if self.cost < self.best_cost
-            || (self.cost.is_infinite()
-                && self.best_cost.is_infinite()
-                && self.cost.is_sign_positive() == self.best_cost.is_sign_positive())
+        if (self.cost < self.best_cost)
+            | (self.cost.is_infinite()
+                & self.best_cost.is_infinite()
+                & self.cost.is_sign_positive()
+                == self.best_cost.is_sign_positive())
         {
             // If there is no parameter vector, then also don't set the best param.
             if let Some(param) = self.param.as_ref().cloned() {
@@ -130,7 +125,7 @@ where
             }
             mem::swap(&mut self.prev_best_cost, &mut self.best_cost);
             self.best_cost = self.cost;
-            self.last_best_iter = self.iter;
+            self.prev_best_iter = self.iter;
         }
     }
 
@@ -168,8 +163,8 @@ where
         self.iter
     }
 
-    fn get_last_best_iter(&self) -> u32 {
-        self.last_best_iter
+    fn get_prev_best_iter(&self) -> u32 {
+        self.prev_best_iter
     }
 
     fn get_max_iters(&self) -> u32 {
@@ -196,6 +191,6 @@ where
     }
 
     fn is_best(&self) -> bool {
-        self.last_best_iter == self.iter
+        self.prev_best_iter == self.iter
     }
 }

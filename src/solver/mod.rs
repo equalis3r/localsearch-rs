@@ -1,11 +1,12 @@
+pub mod guided_local_search;
 pub mod tabu_search;
 pub mod variable_neighborhood;
 
+pub use guided_local_search::GuidedLocalSearch;
 pub use tabu_search::TabuSearch;
 pub use variable_neighborhood::VariableNeighborhood;
 
 use crate::errors::LocalSearchError;
-use crate::problem::Problem;
 use crate::state::State;
 use crate::termination::{Reason, Status};
 
@@ -15,21 +16,21 @@ pub trait Solver<O, I: State> {
     /// # Errors
     ///
     /// Will return `Err` if
-    fn init(&mut self, _problem: &mut Problem<O>, state: I) -> Result<I, LocalSearchError> {
+    fn init(&mut self, _problem: &mut O, state: I) -> Result<I, LocalSearchError> {
         Ok(state)
     }
 
     /// # Errors
     ///
     /// Will return `Err` if
-    fn next_iter(&mut self, problem: &mut Problem<O>, state: I) -> Result<I, LocalSearchError>;
+    fn next_iter(&mut self, problem: &mut O, state: I) -> Result<I, LocalSearchError>;
 
     fn terminate_internal(&mut self, state: &I) -> Status {
         let solver_status = self.terminate();
         if solver_status.terminated() {
             return solver_status;
         }
-        if state.get_iter() >= state.get_max_iters() {
+        if state.get_max_iters() <= state.get_iter() {
             return Status::Terminated(Reason::MaxItersReached);
         }
         if state.get_best_cost() <= state.get_target_cost() {

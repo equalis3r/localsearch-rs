@@ -8,8 +8,8 @@ pub mod termination;
 
 pub use errors::LocalSearchError;
 pub use executor::Executor;
-pub use problem::{CostFunction, Neighborhood, Problem};
-pub use result::MetaSolution;
-pub use solver::{Solver, TabuSearch, VariableNeighborhood};
-pub use state::{Iteration, State};
+pub use problem::{AugmentedNeighborhood, CostFunction, Neighborhood, Penalty};
+pub use result::LocalSearchSolution;
+pub use solver::{GuidedLocalSearch, Solver, TabuSearch, VariableNeighborhood};
+pub use state::{IterState, State};
 pub use termination::{Reason, Status};

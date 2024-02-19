@@ -1,30 +1,31 @@
 use crate::errors::LocalSearchError;
-use crate::problem::{CostFunction, Neighborhood};
+use crate::problem::{AugmentedNeighborhood, CostFunction, Neighborhood, Penalty};
 use crate::solver::Solver;
 use crate::termination::{Reason, Status};
-use crate::{IterState, State};
+use crate::IterState;
 use rand::Rng;
 use rayon::prelude::*;
-use std::collections::VecDeque;
+use std::hash::Hash;
 
-#[derive(Clone)]
-pub struct TabuSearch<R, N> {
+pub struct GuidedLocalSearch<R, N, F: Hash + Eq> {
     num_neighbors: Option<u32>,
     cur_neighbors: Option<Vec<N>>,
-    tabu_list: VecDeque<N>,
-    init_temp: f64,
+    penalty: Penalty<F>,
     stall_iter_best: u32,
     stall_iter_best_limit: u32,
     rng: R,
 }
 
-impl<R: Rng, N> TabuSearch<R, N> {
-    pub fn new(num_neighbors: Option<u32>, capacity: usize, rng: R) -> Self {
+impl<R, N, F> GuidedLocalSearch<R, N, F>
+where
+    R: Rng,
+    F: Hash + Eq,
+{
+    pub fn new(num_neighbors: Option<u32>, alpha: f64, rng: R) -> Self {
         Self {
             num_neighbors,
             cur_neighbors: None,
-            tabu_list: VecDeque::with_capacity(capacity),
-            init_temp: 100.0,
+            penalty: Penalty::new(alpha),
             stall_iter_best: 0,
             stall_iter_best_limit: u32::MAX,
             rng,
@@ -32,14 +33,23 @@ impl<R: Rng, N> TabuSearch<R, N> {
     }
 
     #[must_use]
-    pub fn with_stall_best(mut self, iter: u32) -> Self {
-        self.stall_iter_best_limit = iter;
+    pub fn replace_penalty(mut self, penalty: Penalty<F>) -> Self {
+        self.penalty = penalty;
         self
     }
 
+    pub fn get_penalty(&self) -> &Penalty<F> {
+        &self.penalty
+    }
+
+    pub fn calibrate_penalty(&mut self, ratio: f64) {
+        self.penalty.calibrate(ratio);
+    }
+
     #[must_use]
-    pub fn with_init_temp(mut self, init_temp: f64) -> Self {
-        self.init_temp = init_temp;
+    pub fn with_stall_best(mut self, iter: u32) -> Self {
+        self.stall_iter_best = 0;
+        self.stall_iter_best_limit = iter;
         self
     }
 
@@ -52,14 +62,19 @@ impl<R: Rng, N> TabuSearch<R, N> {
     }
 }
 
-impl<O, P, R, N> Solver<O, IterState<P>> for TabuSearch<R, N>
+impl<O, P, R, N, F> Solver<O, IterState<P>> for GuidedLocalSearch<R, N, F>
 where
-    O: CostFunction<Param = P> + Neighborhood<Param = P, Neighbor = N> + Send + Sync,
+    O: CostFunction<Param = P>
+        + Neighborhood<Param = P, Neighbor = N>
+        + AugmentedNeighborhood<F, Param = P, Neighbor = N, Penalty = Penalty<F>>
+        + Send
+        + Sync,
     P: Clone + Send + Sync,
     R: Rng,
-    N: Clone + PartialEq + Send + Sync,
+    N: Clone + Send + Sync,
+    F: Hash + Eq + Send + Sync,
 {
-    const NAME: &'static str = "TabuSearch";
+    const NAME: &'static str = "GuidedLocalSearch";
 
     fn init(
         &mut self,
@@ -77,15 +92,10 @@ where
         mut state: IterState<P>,
     ) -> Result<IterState<P>, LocalSearchError> {
         let prev_param = state.take_param().unwrap();
-        let prev_cost = state.get_cost();
 
         let mut neighbors = match self.cur_neighbors.take() {
             Some(n) => n,
-            None => problem
-                .get_neighbor_moves(&mut self.rng, &prev_param)?
-                .into_iter()
-                .filter(|neighbor| !self.tabu_list.contains(neighbor))
-                .collect(),
+            None => problem.get_neighbor_moves(&mut self.rng, &prev_param)?,
         };
 
         let eval_neighbors = match self.num_neighbors {
@@ -101,7 +111,7 @@ where
 
         let res = eval_neighbors.par_bridge().map(|neighbor| {
             problem
-                .get_neighbor_delta(&prev_param, &neighbor)
+                .get_neighbor_augmented_delta(&prev_param, &neighbor, &self.penalty)
                 .map_or_else(
                     |_| Err(LocalSearchError::FailGenCandidateState),
                     |new_cost| Ok((neighbor, new_cost)),
@@ -113,22 +123,15 @@ where
             .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
             .map_or_else(|| (None, 0.0), |(neighbor, cost)| (Some(neighbor), cost));
 
-        let new_state = if let Some(n) = neighbor {
-            if self.tabu_list.len() == self.tabu_list.capacity() {
-                self.tabu_list.pop_front();
-            }
-            self.tabu_list.push_back(n.clone());
-            problem.make_move(&prev_param, &n).unwrap()
-        } else {
-            prev_param.clone()
-        };
+        let new_state = neighbor.map_or_else(
+            || prev_param.clone(),
+            |n| problem.make_move(&prev_param, &n).unwrap(),
+        );
 
-        let accepted = (delta.is_sign_negative() && (delta.abs() > f64::EPSILON))
-            || (1.0 / (1.0 + f64::from(state.get_iter() + 1).powf(delta / self.init_temp))
-                > self.rng.gen());
+        let mut accepted = delta.is_sign_negative() && (delta.abs() > f64::EPSILON);
 
-        let new_cost = prev_cost + delta;
-        let new_best_found = new_cost < state.best_cost;
+        let original_cost = problem.cost(&new_state)?;
+        let new_best_found = original_cost < state.best_cost;
         self.update_stall_iter(new_best_found);
 
         if neighbors.is_empty() {
@@ -137,10 +140,18 @@ where
             self.cur_neighbors = Some(neighbors);
         }
 
+        if self.cur_neighbors.is_none() && !accepted {
+            problem.update_penalty(&prev_param, &mut self.penalty)?;
+            self.penalty.lambda = self.penalty.alpha * original_cost
+                / problem.number_of_features(&prev_param)? as f64;
+            accepted = true;
+        }
+
         if accepted {
             self.cur_neighbors = None;
-            Ok(state.param(new_state).cost(new_cost))
+            Ok(state.param(new_state).cost(original_cost))
         } else {
+            let prev_cost = state.get_prev_cost();
             Ok(state.param(prev_param).cost(prev_cost))
         }
     }

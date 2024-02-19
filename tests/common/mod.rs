@@ -24,33 +24,38 @@ impl Neighborhood for EightQueens {
     type Param = ChessBoard;
     type Neighbor = (usize, usize);
 
-    fn get_neighbors<R: Rng>(
+    fn get_neighbor_moves<R: Rng>(
         &self,
         rng: &mut R,
         _param: &ChessBoard,
-        num_neighbors: Option<u32>,
     ) -> Result<Vec<Self::Neighbor>, LocalSearchError> {
-        let neighbors = match num_neighbors {
-            Some(val) => (0..val)
-                .into_iter()
-                .map(|_| (rng.gen_range(0..BOARD_SIZE), rng.gen_range(0..BOARD_SIZE)))
-                .collect(),
-            None => {
-                vec![(rng.gen_range(0..BOARD_SIZE), rng.gen_range(0..BOARD_SIZE))]
-            }
-        };
-        Ok(neighbors)
+        Ok((0..100)
+            .into_iter()
+            .map(|_| (rng.gen_range(0..BOARD_SIZE), rng.gen_range(0..BOARD_SIZE)))
+            .collect())
+    }
+
+    fn get_neighbor_delta(
+        &self,
+        param: &Self::Param,
+        neighbor: &Self::Neighbor,
+    ) -> Result<f64, LocalSearchError> {
+        let mut new_state = param.clone();
+        let (queen_on_row, queen_new_col) = neighbor;
+        new_state[*queen_on_row] = [false; BOARD_SIZE];
+        new_state[*queen_on_row][*queen_new_col] = true;
+        Ok(self.cost(&new_state)? - self.cost(param)?)
     }
 
     fn make_move(
         &self,
         param: &Self::Param,
-        neighbor: Self::Neighbor,
+        neighbor: &Self::Neighbor,
     ) -> Result<Self::Param, LocalSearchError> {
         let mut new_state = param.clone();
         let (queen_on_row, queen_new_col) = neighbor;
-        new_state[queen_on_row] = [false; BOARD_SIZE];
-        new_state[queen_on_row][queen_new_col] = true;
+        new_state[*queen_on_row] = [false; BOARD_SIZE];
+        new_state[*queen_on_row][*queen_new_col] = true;
         Ok(new_state)
     }
 }

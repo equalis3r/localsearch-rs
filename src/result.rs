@@ -1,18 +1,17 @@
-use crate::problem::Problem;
 use crate::solver::Solver;
 use crate::state::State;
 use std::cmp::Ordering;
 use std::fmt;
 
 #[derive(Clone)]
-pub struct MetaSolution<O, S, I> {
-    pub problem: Problem<O>,
+pub struct LocalSearchSolution<O, S, I> {
+    pub problem: O,
     pub solver: S,
     pub state: I,
 }
 
-impl<O, S, I> MetaSolution<O, S, I> {
-    pub fn new(problem: Problem<O>, solver: S, state: I) -> Self {
+impl<O, S, I> LocalSearchSolution<O, S, I> {
+    pub fn new(problem: O, solver: S, state: I) -> Self {
         Self {
             problem,
             solver,
@@ -20,7 +19,7 @@ impl<O, S, I> MetaSolution<O, S, I> {
         }
     }
 
-    pub fn problem(&self) -> &Problem<O> {
+    pub fn problem(&self) -> &O {
         &self.problem
     }
 
@@ -31,9 +30,40 @@ impl<O, S, I> MetaSolution<O, S, I> {
     pub fn state(&self) -> &I {
         &self.state
     }
+
+    pub fn take_result(self) -> (O, S, I) {
+        (self.problem, self.solver, self.state)
+    }
 }
 
-impl<O, S, I> fmt::Display for MetaSolution<O, S, I>
+impl<O, S, I: State> PartialEq for LocalSearchSolution<O, S, I> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.state.get_best_cost() - other.state.get_best_cost()).abs() < f64::EPSILON
+    }
+}
+
+impl<O, S, I: State> Eq for LocalSearchSolution<O, S, I> {}
+
+impl<O, S, I: State> Ord for LocalSearchSolution<O, S, I> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let t = self.state.get_best_cost() - other.state.get_best_cost();
+        if t.abs() < f64::EPSILON {
+            Ordering::Equal
+        } else if t.is_sign_positive() {
+            Ordering::Greater
+        } else {
+            Ordering::Less
+        }
+    }
+}
+
+impl<O, S, I: State> PartialOrd for LocalSearchSolution<O, S, I> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<O, S, I> fmt::Display for LocalSearchSolution<O, S, I>
 where
     I: State,
     I::Param: fmt::Debug,
@@ -51,7 +81,7 @@ where
             )
         )?;
         writeln!(f, "    cost (best):   {}", self.state.get_best_cost())?;
-        writeln!(f, "    iters (best):  {}", self.state.get_last_best_iter())?;
+        writeln!(f, "    iters (best):  {}", self.state.get_prev_best_iter())?;
         writeln!(f, "    iters (total): {}", self.state.get_iter())?;
         writeln!(
             f,
@@ -62,42 +92,5 @@ where
             writeln!(f, "    time:          {time:?}")?;
         }
         Ok(())
-    }
-}
-
-impl<O, S, I: State> PartialEq for MetaSolution<O, S, I> {
-    /// Two `OptimizationResult`s are equal if the absolute of the difference between their best
-    /// cost values is smaller than epsilon.
-    fn eq(&self, other: &Self) -> bool {
-        (self.state.get_best_cost() - other.state.get_best_cost()).abs() < f64::EPSILON
-    }
-}
-
-impl<O, S, I: State> Eq for MetaSolution<O, S, I> {}
-
-impl<O, S, I: State> Ord for MetaSolution<O, S, I> {
-    /// Two `OptimizationResult`s are equal if the absolute of the difference between their best
-    /// cost values is smaller than epsilon.
-    /// Else, an `OptimizationResult` is better if the best cost function value is strictly better
-    /// than the others.
-    fn cmp(&self, other: &Self) -> Ordering {
-        let t = self.state.get_best_cost() - other.state.get_best_cost();
-        if t.abs() < f64::EPSILON {
-            Ordering::Equal
-        } else if t > 0.0 {
-            Ordering::Greater
-        } else {
-            Ordering::Less
-        }
-    }
-}
-
-impl<O, S, I: State> PartialOrd for MetaSolution<O, S, I> {
-    /// Two `OptimizationResult`s are equal if the absolute of the difference between their best
-    /// cost values is smaller than epsilon.
-    /// Else, an `OptimizationResult` is better if the best cost function value is strictly better
-    /// than the others.
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
     }
 }
